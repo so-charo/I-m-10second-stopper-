@@ -121,11 +121,19 @@
   <script>
     (function () {
       let state = "idle";          // idle | running | stopped
-      let startTime = null;        // performance.now() を保存
+      let startTime = null;        // getNow() を保存
       let timerId = null;
 
       const timeEl = document.getElementById("time");
       const btn = document.getElementById("controlButton");
+
+      // 環境によって performance が無い場合に備えておく
+      function getNow() {
+        if (typeof performance !== "undefined" && performance.now) {
+          return performance.now();
+        }
+        return Date.now();
+      }
 
       function formatTime(elapsedMs) {
         // 1/100秒単位に丸める
@@ -141,7 +149,7 @@
       function updateDisplay() {
         if (state !== "running" || startTime === null) return;
 
-        const now = performance.now();
+        const now = getNow();
         const elapsedMs = now - startTime;
         const elapsedSec = elapsedMs / 1000;
 
@@ -223,13 +231,13 @@
           setButtonAppearance("running");
           timeEl.textContent = "00:00";
           timeEl.style.opacity = "1";
-          startTime = performance.now();
+          startTime = getNow();
           timerId = setInterval(updateDisplay, 10); // 1/100秒更新
 
         } else if (state === "running") {
           // ストップ
           clearTimer();
-          const elapsedMs = performance.now() - startTime;
+          const elapsedMs = getNow() - startTime;
           finalizeStop(elapsedMs);
           state = "stopped";
           setButtonAppearance("stopped");
