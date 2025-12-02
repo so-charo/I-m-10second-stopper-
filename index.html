@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>10秒で止めてみよう！</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <!-- favicon / アイコン -->
+  <link rel="icon" type="image/png" href="icon.png">
+  <link rel="apple-touch-icon" href="icon.png">
+  <meta name="theme-color" content="#000000">
+
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      padding: 0;
+      background: #000;
+      color: #fff;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    #app {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #000;
+    }
+
+    .timer-wrapper {
+      position: relative;
+      text-align: center;
+    }
+
+    .title {
+      color: #888;
+      margin-bottom: 1rem;
+      font-size: 1.2rem;
+      letter-spacing: 0.1em;
+    }
+
+    .time-display {
+      font-size: min(20vw, 120px);
+      letter-spacing: 0.1em;
+      transition: opacity 0.2s ease, color 0.2s ease, font-weight 0.2s ease, text-shadow 0.2s ease;
+      opacity: 1;
+    }
+
+    .control-button {
+      position: absolute;
+      right: -4.5rem;
+      bottom: 0;
+      width: min(18vw, 90px);
+      height: min(18vw, 90px);
+      border-radius: 50%;
+      border: none;
+      cursor: pointer;
+      font-size: min(4vw, 18px);
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 0 12px rgba(0, 0, 0, 0.6);
+      transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.2s ease, color 0.2s ease;
+    }
+
+    .control-button:active {
+      transform: scale(0.96);
+      box-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
+    }
+
+    /* ボタンの色状態 */
+    .state-start {
+      background: #004400;      /* 暗い緑 */
+      color: #66ff66;          /* 明るい緑 */
+    }
+
+    .state-stop {
+      background: #550000;      /* 暗い赤 */
+      color: #ff6666;          /* 明るい赤 */
+    }
+
+    .state-reset {
+      background: #666666;      /* 薄いグレー */
+      color: #dddddd;          /* 明るいグレー */
+    }
+
+    /* ストップ時の判定色 */
+    .time-near {
+      color: orange;
+      font-weight: 800;
+      text-shadow: 0 0 10px rgba(255, 165, 0, 0.8);
+    }
+
+    .time-perfect {
+      color: #ffff33;  /* 黄色 */
+      font-weight: 900;
+      text-shadow: 0 0 14px rgba(255, 255, 0, 0.9);
+    }
+
+    @media (max-width: 600px) {
+      .control-button {
+        right: -3.5rem;
+        width: 70px;
+        height: 70px;
+        font-size: 14px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div class="timer-wrapper">
+      <div class="title">10秒で止めてみよう！</div>
+      <div id="time" class="time-display">00:00</div>
+      <button id="controlButton" class="control-button state-start">スタート</button>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      let state = "idle";          // idle | running | stopped
+      let startTime = null;        // performance.now() を保存
+      let timerId = null;
+
+      const timeEl = document.getElementById("time");
+      const btn = document.getElementById("controlButton");
+
+      function formatTime(elapsedMs) {
+        // 1/100秒単位に丸める
+        const totalCentis = Math.floor(elapsedMs / 10);
+        const seconds = Math.floor(totalCentis / 100);
+        const centis = totalCentis % 100;
+
+        const s = String(seconds).padStart(2, "0");
+        const c = String(centis).padStart(2, "0");
+        return s + ":" + c;
+      }
+
+      function updateDisplay() {
+        if (state !== "running" || startTime === null) return;
+
+        const now = performance.now();
+        const elapsedMs = now - startTime;
+        const elapsedSec = elapsedMs / 1000;
+
+        timeEl.textContent = formatTime(elapsedMs);
+
+        // 5秒以降、6.5秒までかけて透明に
+        if (elapsedSec > 5) {
+          const t = Math.min((elapsedSec - 5) / 1.5, 1); // 0〜1
+          const opacity = 1 - t;                         // 1→0
+          timeEl.style.opacity = opacity.toFixed(2);
+        } else {
+          timeEl.style.opacity = "1";
+        }
+      }
+
+      function clearTimer() {
+        if (timerId !== null) {
+          clearInterval(timerId);
+          timerId = null;
+        }
+      }
+
+      function resetHighlight() {
+        timeEl.classList.remove("time-near", "time-perfect");
+        timeEl.style.opacity = "1";
+      }
+
+      function setButtonAppearance(mode) {
+        // mode: "idle" | "running" | "stopped"
+        btn.classList.remove("state-start", "state-stop", "state-reset");
+
+        if (mode === "idle") {
+          btn.textContent = "スタート";
+          btn.classList.add("state-start");
+        } else if (mode === "running") {
+          btn.textContent = "ストップ";
+          btn.classList.add("state-stop");
+        } else if (mode === "stopped") {
+          btn.textContent = "リセット";
+          btn.classList.add("state-reset");
+        }
+      }
+
+      function finalizeStop(elapsedMs) {
+        // 停止時の最終表示を固定
+        const totalCentis = Math.floor(elapsedMs / 10);
+        const seconds = Math.floor(totalCentis / 100);
+        const centis = totalCentis % 100;
+        const display = String(seconds).padStart(2, "0") + ":" + String(centis).padStart(2, "0");
+        timeEl.textContent = display;
+
+        // 見えなくなっていても、ストップした瞬間に再表示
+        timeEl.style.opacity = "1";
+
+        // 色リセット
+        resetHighlight();
+
+        // 判定：
+        // 9.85〜9.99秒 → 985〜999
+        // 10.01〜10.15秒 → 1001〜1015
+        // 10.00秒ジャスト → 1000
+        const totalCentis = Math.floor(elapsedMs / 10);
+
+        if (totalCentis === 1000) {
+          // 10秒ジャスト
+          timeEl.classList.add("time-perfect");
+        } else if (
+          (totalCentis >= 985 && totalCentis <= 999) ||
+          (totalCentis >= 1001 && totalCentis <= 1015)
+        ) {
+          // ニアピン
+          timeEl.classList.add("time-near");
+        }
+      }
+
+      btn.addEventListener("click", function () {
+        if (state === "idle") {
+          // スタート
+          resetHighlight();
+          state = "running";
+          setButtonAppearance("running");
+          timeEl.textContent = "00:00";
+          timeEl.style.opacity = "1";
+          startTime = performance.now();
+          timerId = setInterval(updateDisplay, 10); // 1/100秒更新
+
+        } else if (state === "running") {
+          // ストップ
+          clearTimer();
+          const elapsedMs = performance.now() - startTime;
+          finalizeStop(elapsedMs);
+          state = "stopped";
+          setButtonAppearance("stopped");
+
+        } else if (state === "stopped") {
+          // リセット
+          clearTimer();
+          state = "idle";
+          setButtonAppearance("idle");
+          timeEl.textContent = "00:00";
+          resetHighlight();
+          startTime = null;
+        }
+      });
+
+      // 起動時状態
+      setButtonAppearance("idle");
+      timeEl.textContent = "00:00";
+    })();
+  </script>
+</body>
+</html>
