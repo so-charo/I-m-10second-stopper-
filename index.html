@@ -203,8 +203,6 @@
         // 9.85〜9.99秒 → 985〜999
         // 10.01〜10.15秒 → 1001〜1015
         // 10.00秒ジャスト → 1000
-        const totalCentis = Math.floor(elapsedMs / 10);
-
         if (totalCentis === 1000) {
           // 10秒ジャスト
           timeEl.classList.add("time-perfect");
