@@ -2,10 +2,9 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>10秒で止めてみよう！　ばーじょんA</title>
+  <title>10秒で止めてみよう！</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-  <!-- favicon / アイコン -->
   <link rel="icon" type="image/png" href="DBD913EE-2355-4DCB-B6A6-5A975BD4ECEE.png">
   <link rel="apple-touch-icon" href="DBD913EE-2355-4DCB-B6A6-5A975BD4ECEE.png">
   <meta name="theme-color" content="#000000">
@@ -25,11 +24,9 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      background: #000;
     }
 
     .timer-wrapper {
-      position: relative;
       text-align: center;
       display: flex;
       flex-direction: column;
@@ -38,26 +35,31 @@
 
     .title {
       color: #888;
-      margin-bottom: 1rem;
+      margin-bottom: 0.3rem;
       font-size: 1.2rem;
       letter-spacing: 0.1em;
     }
 
+    .subtitle {
+      color: #666;
+      font-size: 0.9rem;
+      margin-bottom: 1.2rem;
+      letter-spacing: 0.05em;
+      text-align: center;
+    }
+
     .time-display {
       font-size: min(20vw, 120px);
-      /* ブレ防止：等幅フォント + 幅固定 */
       font-family: "SF Mono", ui-monospace, Menlo, Consolas, "Roboto Mono", monospace;
       display: inline-block;
-      min-width: 6ch;          /* 「00:00」がすっぽり入る幅を確保 */
+      min-width: 6ch;
       text-align: center;
       transition: opacity 0.2s ease, color 0.2s ease, font-weight 0.2s ease, text-shadow 0.2s ease;
       opacity: 1;
     }
 
     .control-button {
-      /* 位置：秒表示の中心揃え・下1cm */
       margin-top: 1cm;
-      position: static;         /* 絶対配置をやめて、縦並びに */
       width: min(18vw, 90px);
       height: min(18vw, 90px);
       border-radius: 50%;
@@ -69,7 +71,7 @@
       align-items: center;
       justify-content: center;
       box-shadow: 0 0 12px rgba(0, 0, 0, 0.6);
-      transition: transform 0.1s ease, box-shadow 0.1s ease, background-color 0.2s ease, color 0.2s ease;
+      transition: transform 0.1s ease, box-shadow 0.1s ease;
     }
 
     .control-button:active {
@@ -77,41 +79,31 @@
       box-shadow: 0 0 4px rgba(0, 0, 0, 0.8);
     }
 
-    /* ボタンの色状態 */
     .state-start {
-      background: #004400;      /* 暗い緑 */
-      color: #66ff66;          /* 明るい緑 */
+      background: #004400;
+      color: #66ff66;
     }
 
     .state-stop {
-      background: #550000;      /* 暗い赤 */
-      color: #ff6666;          /* 明るい赤 */
+      background: #550000;
+      color: #ff6666;
     }
 
     .state-reset {
-      background: #666666;      /* 薄いグレー */
-      color: #dddddd;          /* 明るいグレー */
+      background: #666;
+      color: #ddd;
     }
 
-    /* ストップ時の判定色 */
     .time-near {
       color: orange;
       font-weight: 800;
-      text-shadow: 0 0 10px rgba(255, 165, 0, 0.8);
+      text-shadow: 0 0 10px rgba(255,165,0,0.8);
     }
 
     .time-perfect {
-      color: #ffff33;  /* 黄色 */
+      color: #ffff33;
       font-weight: 900;
-      text-shadow: 0 0 14px rgba(255, 255, 0, 0.9);
-    }
-
-    @media (max-width: 600px) {
-      .control-button {
-        width: 70px;
-        height: 70px;
-        font-size: 14px;
-      }
+      text-shadow: 0 0 14px rgba(255,255,0,0.9);
     }
   </style>
 </head>
@@ -119,6 +111,7 @@
   <div id="app">
     <div class="timer-wrapper">
       <div class="title">10秒で止めてみよう！</div>
+      <div class="subtitle">ばーじょんA</div>
       <div id="time" class="time-display">00:00</div>
       <button id="controlButton" class="control-button state-start">スタート</button>
     </div>
@@ -126,30 +119,24 @@
 
   <script>
     (function () {
-      let state = "idle";          // idle | running | stopped
-      let startTime = null;        // getNow() を保存
+      let state = "idle";
+      let startTime = null;
       let timerId = null;
 
       const timeEl = document.getElementById("time");
       const btn = document.getElementById("controlButton");
 
-      // 環境によって performance が無い場合に備えておく
       function getNow() {
-        if (typeof performance !== "undefined" && performance.now) {
-          return performance.now();
-        }
-        return Date.now();
+        return (typeof performance !== "undefined" && performance.now)
+          ? performance.now()
+          : Date.now();
       }
 
       function formatTime(elapsedMs) {
-        // 1/100秒単位に丸める
         const totalCentis = Math.floor(elapsedMs / 10);
         const seconds = Math.floor(totalCentis / 100);
         const centis = totalCentis % 100;
-
-        const s = String(seconds).padStart(2, "0");
-        const c = String(centis).padStart(2, "0");
-        return s + ":" + c;
+        return String(seconds).padStart(2, "0") + ":" + String(centis).padStart(2, "0");
       }
 
       function updateDisplay() {
@@ -161,11 +148,9 @@
 
         timeEl.textContent = formatTime(elapsedMs);
 
-        // 5秒以降、6.5秒までかけて透明に
         if (elapsedSec > 5) {
-          const t = Math.min((elapsedSec - 5) / 1.5, 1); // 0〜1
-          const opacity = 1 - t;                         // 1→0
-          timeEl.style.opacity = opacity.toFixed(2);
+          const t = Math.min((elapsedSec - 5) / 2, 1);
+          timeEl.style.opacity = (1 - t).toFixed(2);
         } else {
           timeEl.style.opacity = "1";
         }
@@ -184,72 +169,55 @@
       }
 
       function setButtonAppearance(mode) {
-        // mode: "idle" | "running" | "stopped"
         btn.classList.remove("state-start", "state-stop", "state-reset");
-
         if (mode === "idle") {
           btn.textContent = "スタート";
           btn.classList.add("state-start");
         } else if (mode === "running") {
           btn.textContent = "ストップ";
           btn.classList.add("state-stop");
-        } else if (mode === "stopped") {
+        } else {
           btn.textContent = "リセット";
           btn.classList.add("state-reset");
         }
       }
 
       function finalizeStop(elapsedMs) {
-        // 停止時の最終表示を固定
         const totalCentis = Math.floor(elapsedMs / 10);
         const seconds = Math.floor(totalCentis / 100);
         const centis = totalCentis % 100;
-        const display = String(seconds).padStart(2, "0") + ":" + String(centis).padStart(2, "0");
-        timeEl.textContent = display;
-
-        // 見えなくなっていても、ストップした瞬間に再表示
+        timeEl.textContent = String(seconds).padStart(2, "0") + ":" + String(centis).padStart(2, "0");
         timeEl.style.opacity = "1";
 
-        // 色リセット
         resetHighlight();
 
-        // 判定：
-        // 9.85〜9.99秒 → 985〜999
-        // 10.01〜10.15秒 → 1001〜1015
-        // 10.00秒ジャスト → 1000
         if (totalCentis === 1000) {
-          // 10秒ジャスト
           timeEl.classList.add("time-perfect");
         } else if (
           (totalCentis >= 985 && totalCentis <= 999) ||
           (totalCentis >= 1001 && totalCentis <= 1015)
         ) {
-          // ニアピン
           timeEl.classList.add("time-near");
         }
       }
 
-      btn.addEventListener("click", function () {
+      btn.addEventListener("click", () => {
         if (state === "idle") {
-          // スタート
           resetHighlight();
           state = "running";
           setButtonAppearance("running");
           timeEl.textContent = "00:00";
           timeEl.style.opacity = "1";
           startTime = getNow();
-          timerId = setInterval(updateDisplay, 10); // 1/100秒更新
+          timerId = setInterval(updateDisplay, 10);
 
         } else if (state === "running") {
-          // ストップ
           clearTimer();
-          const elapsedMs = getNow() - startTime;
-          finalizeStop(elapsedMs);
+          finalizeStop(getNow() - startTime);
           state = "stopped";
           setButtonAppearance("stopped");
 
-        } else if (state === "stopped") {
-          // リセット
+        } else {
           clearTimer();
           state = "idle";
           setButtonAppearance("idle");
@@ -259,9 +227,7 @@
         }
       });
 
-      // 起動時状態
       setButtonAppearance("idle");
-      timeEl.textContent = "00:00";
     })();
   </script>
 </body>
